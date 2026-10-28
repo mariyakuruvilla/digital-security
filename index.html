@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital Haven — Your Digital Life, Thoughtfully Protected</title>
+  <meta name="description" content="Digital Haven: a personal digital safety and recovery manager with risk evaluation, account tracking, subscription management, and emergency preparedness." />
+
+  <!-- Google Fonts: Playfair Display + DM Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Lucide icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+
+  <!-- =====================================================
+       SIDEBAR NAVIGATION
+       ===================================================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <!-- Brand -->
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L20 6 L20 12 C20 16.418 16.418 20 12 22 C7.582 20 4 16.418 4 12 L4 6 Z"/>
+            <path d="M9 12 L11 14 L15 10"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">Digital Haven</span>
+          <span class="logo-sub">Thoughtfully Protected</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Area -->
+    <div class="sidebar-profile" id="sidebarProfile">
+      <div class="profile-avatar" id="sidebarAvatar">?</div>
+      <div class="profile-meta">
+        <span class="profile-name" id="sidebarName">Your Name</span>
+        <span class="profile-workspace" id="sidebarWorkspace">Personal Space</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="dashboard">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-section="accounts">
+        <i data-lucide="user-circle"></i>
+        <span>Digital Accounts</span>
+      </a>
+      <a href="#" class="nav-item" data-section="subscriptions">
+        <i data-lucide="credit-card"></i>
+        <span>Subscriptions</span>
+      </a>
+      <a href="#" class="nav-item" data-section="risk">
+        <i data-lucide="alert-triangle"></i>
+        <span>Risk Assessment</span>
+      </a>
+      <a href="#" class="nav-item" data-section="recovery">
+        <i data-lucide="life-buoy"></i>
+        <span>Recovery Centre</span>
+      </a>
+      <a href="#" class="nav-item" data-section="settings">
+        <i data-lucide="settings"></i>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-privacy-note">
+        <i data-lucide="lock"></i>
+        <span>All data stored locally</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =====================================================
+       MOBILE TOP BAR
+       ===================================================== -->
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation menu">
+      <i data-lucide="menu"></i>
+    </button>
+    <span class="topbar-title">Digital Haven</span>
+    <div class="topbar-actions">
+      <div class="status-indicator" title="Data stored locally in your browser"></div>
+    </div>
+  </header>
+
+  <!-- =====================================================
+       MAIN CONTENT
+       ===================================================== -->
+  <main class="main-content">
+    <!-- Toast notifications container -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <!-- =================================================
+         SECTION: DASHBOARD
+         ================================================= -->
+    <section class="section active" id="section-dashboard">
+      <!-- Personalized Welcome Banner -->
+      <div class="welcome-banner">
+        <div class="welcome-content">
+          <p class="welcome-greeting" id="dashGreeting">Good morning</p>
+          <h1 id="dashWelcomeTitle">Your Digital Wellness Overview</h1>
+          <p id="dashWelcomeSub">Monitor account security, track subscriptions, and ensure your digital recovery plan is always ready.</p>
+        </div>
+        <div class="welcome-illustration">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--sage-dark);">
+            <path d="M12 2 L20 6 L20 12 C20 16.418 16.418 20 12 22 C7.582 20 4 16.418 4 12 L4 6 Z"/>
+            <path d="M9 12 L11 14 L15 10"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="quick-actions-bar">
+        <button class="btn btn-primary" id="qaAddAccount">
+          <i data-lucide="user-plus"></i>
+          <span>Add Account</span>
+        </button>
+        <button class="btn btn-secondary" id="qaAddSub">
+          <i data-lucide="credit-card"></i>
+          <span>Add Subscription</span>
+        </button>
+        <button class="btn btn-accent" id="qaViewChecklist">
+          <i data-lucide="check-square"></i>
+          <span>View Checklist</span>
+        </button>
+        <button class="btn btn-ghost" id="qaViewRisk">
+          <i data-lucide="shield-alert"></i>
+          <span>Review Risks</span>
+        </button>
+      </div>
+
+      <!-- Safety Score Hero -->
+      <div class="score-hero">
+        <div class="score-ring-wrapper">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="50" />
+            <circle class="ring-fill" cx="60" cy="60" r="50" id="scoreRingFill" />
+          </svg>
+          <div class="score-inner">
+            <span class="score-number" id="dashSafetyScore">--</span>
+            <span class="score-label">Safety Score</span>
+          </div>
+        </div>
+        <div class="score-info">
+          <h2 id="scoreTitle">Calculating posture…</h2>
+          <p id="scoreDesc">This illustrative score is calculated from your saved demo information — not a real security scan or breach detection.</p>
+          <div class="score-tags" id="scoreTags"></div>
+        </div>
+      </div>
+
+      <!-- Stat Cards Grid -->
+      <div class="cards-grid">
+        <div class="stat-card">
+          <div class="stat-icon icon-sage"><i data-lucide="user-circle"></i></div>
+          <div class="stat-info">
+            <span class="stat-num" id="dashTotalAccounts">0</span>
+            <span class="stat-label">Total Accounts</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-mint"><i data-lucide="shield-check"></i></div>
+          <div class="stat-info">
+            <span class="stat-num" id="dashTwoFAAccounts">0</span>
+            <span class="stat-label">2FA Protected</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-lavender"><i data-lucide="life-buoy"></i></div>
+          <div class="stat-info">
+            <span class="stat-num" id="dashRecovery">0%</span>
+            <span class="stat-label">Recovery Readiness</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-butter"><i data-lucide="indian-rupee"></i></div>
+          <div class="stat-info">
+            <span class="stat-num" id="dashSpending">₹0</span>
+            <span class="stat-label">Monthly Spend</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-lemon"><i data-lucide="calendar-clock"></i></div>
+          <div class="stat-info">
+            <span class="stat-num" id="dashRenewalsCount">0</span>
+            <span class="stat-label">Upcoming Renewals</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two-column bottom row -->
+      <div class="dash-bottom-grid">
+        <!-- Security Reminders & Alerts -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i data-lucide="bell-ring"></i> Security Insights</h3>
+          </div>
+          <div id="dashAlerts" class="alert-list"></div>
+        </div>
+
+        <!-- Upcoming Renewals -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i data-lucide="calendar-clock"></i> Upcoming Renewals</h3>
+          </div>
+          <div id="dashRenewalsList" class="renewals-list"></div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="activity"></i> Recent Activity</h3>
+        </div>
+        <div id="dashActivity" class="activity-list"></div>
+      </div>
+    </section>
+
+    <!-- =================================================
+         SECTION: DIGITAL ACCOUNTS
+         ================================================= -->
+    <section class="section" id="section-accounts">
+      <div class="section-header">
+        <h1>Digital Accounts</h1>
+        <p class="section-sub">Track credentials, 2FA status, and recovery paths. <strong>Never store real passwords, PINs, or banking codes here.</strong></p>
+      </div>
+
+      <!-- Add / Edit Form Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 id="accFormHeading"><i data-lucide="plus-circle"></i> <span id="accFormTitle">Add New Account</span></h3>
+          <button type="button" class="btn btn-secondary btn-sm" id="accCancelEditBtn" style="display: none;">
+            <i data-lucide="x"></i> Cancel Edit
+          </button>
+        </div>
+        <form id="accountForm" class="form-grid" novalidate data-mode="add">
+          <input type="hidden" id="accEditId" value="" />
+          <div class="form-group">
+            <label for="accName">Account / Service Name *</label>
+            <input type="text" id="accName" placeholder="e.g. ProtonMail, GitHub, Zerodha" maxlength="50" required />
+          </div>
+          <div class="form-group">
+            <label for="accCategory">Category *</label>
+            <select id="accCategory" required>
+              <option value="">Select category</option>
+              <option value="Email">Email</option>
+              <option value="Social Media">Social Media</option>
+              <option value="Banking">Banking</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Work">Work</option>
+              <option value="Education">Education</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Health">Health</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="acc2FA">Two-Factor Authentication</label>
+            <select id="acc2FA">
+              <option value="Enabled">Enabled</option>
+              <option value="Disabled">Disabled</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="accRecovery">Primary Recovery Method</label>
+            <select id="accRecovery">
+              <option value="Email">Email</option>
+              <option value="Phone">Phone (SMS)</option>
+              <option value="Authenticator App">Authenticator App</option>
+              <option value="Backup Codes">Backup Codes</option>
+              <option value="None">None</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label for="accNotes">Notes (optional)</label>
+            <input type="text" id="accNotes" placeholder="e.g. Hardware key enrolled, recovery codes stored in safe" maxlength="100" />
+          </div>
+          <div class="form-group full form-actions">
+            <button type="submit" class="btn btn-primary" id="accSubmitBtn">
+              <i data-lucide="plus"></i> <span id="accSubmitLabel">Add Account</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Accounts Directory Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="list"></i> Your Accounts</h3>
+          <div class="filter-bar">
+            <div class="search-wrap">
+              <i data-lucide="search"></i>
+              <input type="text" id="accSearch" placeholder="Search accounts…" />
+            </div>
+            <select id="accCatFilter" class="filter-select" aria-label="Filter by category">
+              <option value="">All Categories</option>
+              <option value="Email">Email</option>
+              <option value="Social Media">Social Media</option>
+              <option value="Banking">Banking</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Work">Work</option>
+              <option value="Education">Education</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Health">Health</option>
+              <option value="Other">Other</option>
+            </select>
+            <select id="accTfaFilter" class="filter-select" aria-label="Filter by 2FA status">
+              <option value="">All 2FA Status</option>
+              <option value="Enabled">2FA Enabled</option>
+              <option value="Disabled">2FA Disabled</option>
+              <option value="Unknown">2FA Unknown</option>
+            </select>
+          </div>
+        </div>
+        <div id="accountsList" class="items-list"></div>
+      </div>
+    </section>
+
+    <!-- =================================================
+         SECTION: SUBSCRIPTIONS
+         ================================================= -->
+    <section class="section" id="section-subscriptions">
+      <div class="section-header">
+        <h1>Subscriptions</h1>
+        <p class="section-sub">Track active recurring services, renewal schedules, and budget allocations.</p>
+      </div>
+
+      <!-- Add Subscription Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="plus-circle"></i> Add Subscription</h3>
+        </div>
+        <form id="subForm" class="form-grid" novalidate>
+          <div class="form-group">
+            <label for="subName">Service Name *</label>
+            <input type="text" id="subName" placeholder="e.g. Notion AI, Spotify, GitHub Pro" maxlength="50" required />
+          </div>
+          <div class="form-group">
+            <label for="subCost">Cost (₹) *</label>
+            <input type="number" id="subCost" placeholder="e.g. 499" min="0" max="1000000" step="0.01" required />
+          </div>
+          <div class="form-group">
+            <label for="subFrequency">Billing Frequency</label>
+            <select id="subFrequency">
+              <option value="monthly" selected>Monthly</option>
+              <option value="yearly">Yearly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="subCategory">Category</label>
+            <select id="subCategory">
+              <option value="Entertainment">Entertainment</option>
+              <option value="Productivity">Productivity</option>
+              <option value="Cloud Storage">Cloud Storage</option>
+              <option value="Music">Music</option>
+              <option value="News">News</option>
+              <option value="Gaming">Gaming</option>
+              <option value="Security">Security</option>
+              <option value="Education">Education</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="subRenewal">Next Renewal Date</label>
+            <input type="date" id="subRenewal" />
+          </div>
+          <div class="form-group full form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="plus"></i> Add Subscription
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Spending Summary -->
+      <div class="spending-summary-card">
+        <div class="summary-metric">
+          <span class="metric-label">Total Monthly Equivalent</span>
+          <span class="metric-value highlight" id="subTotal">₹0.00</span>
+          <span class="metric-sub">Normalised across all billing cycles</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-metric">
+          <span class="metric-label">Estimated Annual Cost</span>
+          <span class="metric-value" id="subAnnual">₹0.00</span>
+          <span class="metric-sub">Projected 12-month commitment</span>
+        </div>
+      </div>
+
+      <!-- Category Spending Chart -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="bar-chart-2"></i> Monthly Spending by Category</h3>
+        </div>
+        <div id="subCategoryChart" class="category-chart"></div>
+      </div>
+
+      <!-- Active Subscriptions List -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="list"></i> Active Subscriptions</h3>
+          <div class="filter-bar">
+            <div class="search-wrap">
+              <i data-lucide="search"></i>
+              <input type="text" id="subSearch" placeholder="Search subscriptions…" />
+            </div>
+            <select id="subCatFilter" class="filter-select" aria-label="Filter by category">
+              <option value="">All Categories</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Productivity">Productivity</option>
+              <option value="Cloud Storage">Cloud Storage</option>
+              <option value="Music">Music</option>
+              <option value="News">News</option>
+              <option value="Gaming">Gaming</option>
+              <option value="Security">Security</option>
+              <option value="Education">Education</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div id="subList" class="items-list"></div>
+      </div>
+    </section>
+
+    <!-- =================================================
+         SECTION: RISK ASSESSMENT
+         ================================================= -->
+    <section class="section" id="section-risk">
+      <div class="section-header">
+        <h1>Risk Assessment</h1>
+        <p class="section-sub">Simulated findings based on your saved demo information — not a real scan of external systems or accounts.</p>
+      </div>
+
+      <!-- Educational Disclaimer -->
+      <div class="disclaimer-banner">
+        <i data-lucide="info"></i>
+        <div class="disclaimer-text">
+          <strong>Educational Demonstration Only</strong>
+          <p>All findings, scores, and recommendations are generated locally from your entered data. No network requests, vulnerability scans, or breach detection services are used.</p>
+        </div>
+      </div>
+
+      <!-- Risk Overview -->
+      <div class="risk-overview">
+        <div class="risk-meter-card card">
+          <h3>Overall Risk Exposure</h3>
+          <div class="risk-meter">
+            <div class="risk-bar" id="riskBar"></div>
+          </div>
+          <div class="risk-labels">
+            <span>Low</span><span>Moderate</span><span>High</span><span>Critical</span>
+          </div>
+          <p class="risk-level-text" id="riskLevelText">Calculating…</p>
+        </div>
+
+        <div class="risk-stats card">
+          <div class="risk-stat">
+            <span id="rNoTfa">0</span>
+            <label>Accounts missing 2FA</label>
+          </div>
+          <div class="risk-stat">
+            <span id="rNoRecovery">0</span>
+            <label>Without recovery method</label>
+          </div>
+          <div class="risk-stat">
+            <span id="rExpiring">0</span>
+            <label>Renewing within 30 days</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Structured Findings -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="shield-alert"></i> Structured Risk Findings</h3>
+          <div class="filter-wrap">
+            <label for="riskSeverityFilter" class="filter-label">Severity:</label>
+            <select id="riskSeverityFilter" class="filter-select">
+              <option value="all">All Severities</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+        <div id="riskFindingsList" class="findings-list"></div>
+      </div>
+
+      <!-- Recommendations -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="shield-check"></i> Recommended Remediation</h3>
+        </div>
+        <div id="riskRecommendations" class="reco-list"></div>
+      </div>
+    </section>
+
+    <!-- =================================================
+         SECTION: RECOVERY CENTRE
+         ================================================= -->
+    <section class="section" id="section-recovery">
+      <div class="section-header">
+        <h1>Recovery Centre</h1>
+        <p class="section-sub">Build resilient emergency safeguards to prevent permanent lockout from your digital identity.</p>
+      </div>
+
+      <!-- Progress Card -->
+      <div class="recovery-progress-card card">
+        <div class="progress-header">
+          <div>
+            <h3>Recovery Readiness</h3>
+            <p class="progress-sub">Calculated across baseline and custom contingency tasks</p>
+          </div>
+          <span class="progress-pct" id="recoveryPct">0%</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="recoveryBar"></div>
+        </div>
+        <p class="progress-note" id="recoveryNote">Complete the checklist items below.</p>
+      </div>
+
+      <!-- Filter & Controls Bar -->
+      <div class="recovery-controls-bar">
+        <div class="tab-pill-group">
+          <button class="tab-pill active recovery-tab" data-tab="all">All Items</button>
+          <button class="tab-pill recovery-tab" data-tab="pending">Pending</button>
+          <button class="tab-pill recovery-tab" data-tab="completed">Completed</button>
+        </div>
+        <button class="btn btn-danger btn-sm" id="resetChecklistBtn">
+          <i data-lucide="rotate-ccw"></i> Reset Checklist
+        </button>
+      </div>
+
+      <!-- Categorized Checklist -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="clipboard-list"></i> Emergency Recovery Checklist</h3>
+        </div>
+        <div id="recoveryChecklist" class="checklist-container"></div>
+      </div>
+
+      <!-- Add Custom Item -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="plus-circle"></i> Add Custom Task</h3>
+        </div>
+        <form id="customItemForm" class="form-grid" novalidate>
+          <div class="form-group" style="flex: 2;">
+            <label for="customItemText">Task Description *</label>
+            <input type="text" id="customItemText" placeholder="e.g. Deposit physical recovery seed phrase in safety deposit box" maxlength="120" required />
+          </div>
+          <div class="form-group">
+            <label for="customItemCat">Category</label>
+            <select id="customItemCat">
+              <option value="Account Access">Account Access</option>
+              <option value="Recovery Contacts">Recovery Contacts</option>
+              <option value="Backup Preparation">Backup Preparation</option>
+              <option value="Security Settings" selected>Security Settings</option>
+            </select>
+          </div>
+          <div class="form-group full form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="plus"></i> Add Task
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Recovery Tips -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="book-open"></i> Recovery Principles</h3>
+        </div>
+        <div class="tips-grid">
+          <div class="tip-card">
+            <i data-lucide="key"></i>
+            <h4>Dedicated Password Vault</h4>
+            <p>Store encrypted passwords in Bitwarden or 1Password — never in browser autofill alone.</p>
+          </div>
+          <div class="tip-card">
+            <i data-lucide="smartphone"></i>
+            <h4>Hardware or TOTP 2FA</h4>
+            <p>Prefer authenticator apps or FIDO2 keys over SMS to resist SIM-swapping attacks.</p>
+          </div>
+          <div class="tip-card">
+            <i data-lucide="hard-drive"></i>
+            <h4>The 3-2-1 Backup Rule</h4>
+            <p>Keep 3 copies of vital data on 2 different media formats, with 1 copy stored off-site.</p>
+          </div>
+          <div class="tip-card">
+            <i data-lucide="refresh-cw"></i>
+            <h4>Quarterly Access Audit</h4>
+            <p>Review recovery emails, phone numbers, and trusted devices every 90 days.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================
+         SECTION: SETTINGS
+         ================================================= -->
+    <section class="section" id="section-settings">
+      <div class="section-header">
+        <h1>Settings</h1>
+        <p class="section-sub">Personalize your workspace, manage preferences, and control your stored data.</p>
+      </div>
+
+      <!-- Profile & Workspace Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="user"></i> Profile &amp; Workspace</h3>
+        </div>
+        <div class="settings-actions">
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>Display Name</h4>
+              <p>Shown in your personalized greeting on the Dashboard.</p>
+            </div>
+            <div class="setting-field-wrap">
+              <input type="text" id="settingDisplayName" class="setting-input" placeholder="e.g. Maria" maxlength="40" />
+              <button class="btn btn-primary btn-sm" id="saveProfileBtn">
+                <i data-lucide="check"></i> Save
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>Workspace Label</h4>
+              <p>A short descriptor shown below your name in the sidebar.</p>
+            </div>
+            <div class="setting-field-wrap">
+              <input type="text" id="settingWorkspaceName" class="setting-input" placeholder="e.g. Student Workspace" maxlength="40" />
+              <button class="btn btn-primary btn-sm" id="saveWorkspaceBtn">
+                <i data-lucide="check"></i> Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appearance & Accessibility Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="palette"></i> Appearance &amp; Accessibility</h3>
+        </div>
+        <div class="settings-actions">
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>Colour Theme</h4>
+              <p>Choose a coordinated pastel palette for the sidebar and accent colours.</p>
+            </div>
+            <div class="theme-swatches" id="themeSwatches">
+              <button class="theme-swatch active" data-theme="sage" title="Sage &amp; Ivory">
+                <span style="background: #C9DCC8;"></span>
+                <span style="background: #F5E6A8;"></span>
+              </button>
+              <button class="theme-swatch" data-theme="lavender" title="Soft Lavender">
+                <span style="background: #C9BDE8;"></span>
+                <span style="background: #E6DFF5;"></span>
+              </button>
+              <button class="theme-swatch" data-theme="blush" title="Buttercream &amp; Blush">
+                <span style="background: #F1D9D5;"></span>
+                <span style="background: #FFF6CC;"></span>
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>Reduce Motion</h4>
+              <p>Disable animated transitions, score-ring animations, and decorative motion across all sections.</p>
+            </div>
+            <label class="switch" for="reduceMotionToggle">
+              <input type="checkbox" id="reduceMotionToggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy & Data Management Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="database"></i> Privacy &amp; Data Management</h3>
+        </div>
+        <div class="about-content" style="margin-bottom: 1rem;">
+          <p>All application data is stored exclusively in <strong>this browser's localStorage</strong>. No information is transmitted to any server, third-party service, or analytics platform. Clearing your browser data or using a different browser will result in data loss unless you export first.</p>
+        </div>
+        <div class="settings-actions">
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>Export Data</h4>
+              <p>Download all accounts, subscriptions, and checklist data as a JSON backup file.</p>
+            </div>
+            <button class="btn btn-secondary" id="exportBtn">
+              <i data-lucide="download"></i> Export JSON
+            </button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <h4>Import Data</h4>
+              <p>Restore a previously exported JSON backup. Existing data will be replaced after confirmation.</p>
+            </div>
+            <label class="btn btn-secondary" for="importFileInput" style="cursor: pointer;">
+              <i data-lucide="upload"></i> Import JSON
+              <input type="file" id="importFileInput" accept=".json" style="display: none;" />
+            </label>
+          </div>
+          <div class="setting-row danger">
+            <div class="setting-info">
+              <h4>Reset to Sample Data</h4>
+              <p>Restore original curated demo records. Custom entries will be replaced.</p>
+            </div>
+            <button class="btn btn-danger" id="resetBtn">
+              <i data-lucide="rotate-ccw"></i> Reset Data
+            </button>
+          </div>
+          <div class="setting-row danger">
+            <div class="setting-info">
+              <h4>Clear All Data</h4>
+              <p>Erase everything from localStorage. The workspace reloads completely empty.</p>
+            </div>
+            <button class="btn btn-danger" id="clearAllBtn">
+              <i data-lucide="trash-2"></i> Clear All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Application Information Card -->
+      <div class="card project-info-card">
+        <div class="project-logo">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L20 6 L20 12 C20 16.418 16.418 20 12 22 C7.582 20 4 16.418 4 12 L4 6 Z"/>
+            <path d="M9 12 L11 14 L15 10"/>
+          </svg>
+        </div>
+        <h2>Digital Haven</h2>
+        <p class="project-tagline">Your Digital Life, Thoughtfully Protected — a calm, accessible client-side application demonstrating digital security and emergency recovery principles.</p>
+        <div class="project-meta">
+          <div class="meta-item"><i data-lucide="code-2"></i><span>HTML5 · CSS3 · Vanilla JS</span></div>
+          <div class="meta-item"><i data-lucide="database"></i><span>localStorage (zero server)</span></div>
+          <div class="meta-item"><i data-lucide="palette"></i><span>Pastel Botanical Palette</span></div>
+          <div class="meta-item"><i data-lucide="graduation-cap"></i><span>College Project 2025–26</span></div>
+        </div>
+      </div>
+
+      <!-- Simulated Security Notice -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="info"></i> About Security Assessments</h3>
+        </div>
+        <div class="about-content">
+          <p>The Risk Assessment section produces <strong>simulated, rule-based findings</strong> derived solely from the data you have entered in this application. It does not:</p>
+          <ul>
+            <li>Connect to any external API, breach database, or threat intelligence feed</li>
+            <li>Scan your actual online accounts or network traffic</li>
+            <li>Perform real vulnerability detection or intrusion analysis</li>
+            <li>Store or transmit your data outside this browser window</li>
+          </ul>
+          <p>All sample data included in this application is entirely fictional and is intended for educational demonstration purposes only.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =====================================================
+       CONFIRMATION MODAL
+       ===================================================== -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" id="confirmModal">
+      <div class="modal-icon" id="modalIcon">
+        <i data-lucide="alert-triangle"></i>
+      </div>
+      <h3 id="modalTitle">Confirm Action</h3>
+      <p id="modalMessage">Are you sure you wish to proceed?</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+        <button class="btn btn-danger" id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

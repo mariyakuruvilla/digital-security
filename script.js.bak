@@ -1,0 +1,658 @@
+/* =========================================================
+   DIGITAL RISK & RECOVERY MANAGER — script.js
+   All interactivity, localStorage, navigation, validation
+   ========================================================= */
+
+'use strict';
+
+// ─── SVG Gradient for score ring ───────────────────────────────────────────
+document.querySelector('.score-ring').insertAdjacentHTML('afterbegin', `
+  <defs>
+    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+`);
+
+// ─── Default / Sample Demo Data ────────────────────────────────────────────
+const DEMO_ACCOUNTS = [
+  { id: uid(), name: 'Gmail',        category: 'Email',         twoFA: 'Enabled',  recovery: 'Phone',             notes: 'Primary email account' },
+  { id: uid(), name: 'Instagram',    category: 'Social Media',  twoFA: 'Disabled', recovery: 'Email',             notes: 'Personal social account' },
+  { id: uid(), name: 'HDFC NetBanking', category: 'Banking',    twoFA: 'Enabled',  recovery: 'Authenticator App', notes: 'Main bank account' },
+  { id: uid(), name: 'Amazon',       category: 'Shopping',      twoFA: 'Disabled', recovery: 'Email',             notes: 'Online shopping' },
+  { id: uid(), name: 'Notion',       category: 'Work',          twoFA: 'Enabled',  recovery: 'Backup Codes',      notes: 'Study notes & projects' },
+  { id: uid(), name: 'LinkedIn',     category: 'Social Media',  twoFA: 'Unknown',  recovery: 'None',              notes: 'Professional profile' },
+];
+
+const DEMO_SUBSCRIPTIONS = [
+  { id: uid(), name: 'Netflix',     cost: 649,  category: 'Entertainment', renewal: '2026-11-05' },
+  { id: uid(), name: 'Spotify',     cost: 119,  category: 'Music',         renewal: '2026-10-20' },
+  { id: uid(), name: 'Google One',  cost: 130,  category: 'Cloud Storage', renewal: '2026-12-15' },
+  { id: uid(), name: 'Adobe CC',    cost: 3675, category: 'Productivity',  renewal: '2026-10-28' },
+  { id: uid(), name: 'Antivirus',   cost: 249,  category: 'Security',      renewal: '2026-11-30' },
+];
+
+const DEMO_RECOVERY = {
+  backup_codes: true,
+  recovery_email: true,
+  phone_number: false,
+  trusted_contacts: false,
+  data_backup: true,
+};
+
+// ─── Utility Functions ──────────────────────────────────────────────────────
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function fmtCurrency(n) {
+  return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '—';
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return Infinity;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const t   = new Date(dateStr);
+  return Math.ceil((t - now) / 86400000);
+}
+
+// Category emoji map
+const CATEGORY_EMOJI = {
+  'Email': '📧', 'Social Media': '📱', 'Banking': '🏦',
+  'Shopping': '🛍️', 'Work': '💼', 'Entertainment': '🎬',
+  'Health': '❤️', 'Other': '📌',
+  'Music': '🎵', 'Cloud Storage': '☁️', 'Productivity': '⚡',
+  'News': '📰', 'Gaming': '🎮', 'Security': '🔒',
+};
+
+function categoryBg(cat) {
+  const COLORS = {
+    'Email': '#3b82f6', 'Social Media': '#8b5cf6', 'Banking': '#22c55e',
+    'Shopping': '#f59e0b', 'Work': '#14b8a6', 'Entertainment': '#ef4444',
+    'Health': '#ec4899', 'Music': '#a855f7', 'Cloud Storage': '#06b6d4',
+    'Productivity': '#f97316', 'News': '#84cc16', 'Gaming': '#e879f9',
+    'Security': '#22c55e', 'Other': '#64748b',
+  };
+  return COLORS[cat] || '#64748b';
+}
+
+// ─── localStorage Helpers ───────────────────────────────────────────────────
+const LS_KEYS = { accounts: 'drrm_accounts', subs: 'drrm_subs', recovery: 'drrm_recovery', init: 'drrm_init' };
+
+function load(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+}
+function save(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+// ─── App State ──────────────────────────────────────────────────────────────
+let state = {
+  accounts: [],
+  subs: [],
+  recovery: {},
+};
+
+function initState() {
+  const firstRun = !localStorage.getItem(LS_KEYS.init);
+  if (firstRun) {
+    state.accounts = DEMO_ACCOUNTS;
+    state.subs     = DEMO_SUBSCRIPTIONS;
+    state.recovery = DEMO_RECOVERY;
+    persistAll();
+    localStorage.setItem(LS_KEYS.init, '1');
+  } else {
+    state.accounts = load(LS_KEYS.accounts) || [];
+    state.subs     = load(LS_KEYS.subs) || [];
+    state.recovery = load(LS_KEYS.recovery) || {};
+  }
+}
+
+function persistAll() {
+  save(LS_KEYS.accounts, state.accounts);
+  save(LS_KEYS.subs,     state.subs);
+  save(LS_KEYS.recovery, state.recovery);
+}
+
+// ─── Navigation ─────────────────────────────────────────────────────────────
+let currentSection = 'dashboard';
+
+function navigateTo(section) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const sectionEl = document.getElementById('section-' + section);
+  const navEl     = document.querySelector(`.nav-item[data-section="${section}"]`);
+
+  if (sectionEl) sectionEl.classList.add('active');
+  if (navEl)     navEl.classList.add('active');
+
+  currentSection = section;
+
+  // Re-initialise icons in newly visible section
+  lucide.createIcons();
+
+  // Refresh section data
+  if (section === 'dashboard')     renderDashboard();
+  if (section === 'accounts')      renderAccounts();
+  if (section === 'subscriptions') renderSubscriptions();
+  if (section === 'risk')          renderRisk();
+  if (section === 'recovery')      renderRecovery();
+
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+// ─── Toast Notifications ────────────────────────────────────────────────────
+function toast(message, type = 'success') {
+  const icons = { success: 'check-circle', error: 'x-circle', info: 'info' };
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i data-lucide="${icons[type] || 'info'}"></i><span>${message}</span>`;
+  document.getElementById('toastContainer').appendChild(t);
+  lucide.createIcons();
+  setTimeout(() => t.remove(), 3800);
+}
+
+// ─── Confirm Modal ───────────────────────────────────────────────────────────
+function confirm(title, message, emoji, onConfirm) {
+  document.getElementById('modalTitle').textContent   = title;
+  document.getElementById('modalMessage').textContent = message;
+  document.getElementById('modalIcon').textContent    = emoji || '⚠️';
+  document.getElementById('modalOverlay').classList.add('active');
+  document.getElementById('modalConfirm').onclick = () => {
+    closeModal();
+    onConfirm();
+  };
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+
+// ─── Dashboard ──────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const totalAccounts  = state.accounts.length;
+  const noTfa          = state.accounts.filter(a => a.twoFA !== 'Enabled').length;
+  const noRecovery     = state.accounts.filter(a => a.recovery === 'None').length;
+  const recoveryDone   = Object.values(state.recovery).filter(Boolean).length;
+  const recoveryTotal  = 5;
+  const recoveryPct    = Math.round((recoveryDone / recoveryTotal) * 100);
+  const monthlySpend   = state.subs.reduce((s, sub) => s + Number(sub.cost), 0);
+  const riskAlerts     = noTfa + noRecovery;
+
+  // Safety score (0–100)
+  let score = 100;
+  score -= noTfa * 8;
+  score -= noRecovery * 12;
+  score -= Math.max(0, (5 - recoveryDone) * 5);
+  score -= (riskAlerts > 3 ? 10 : 0);
+  score = Math.max(0, Math.min(100, score));
+
+  // Update DOM
+  document.getElementById('dashTotalAccounts').textContent = totalAccounts;
+  document.getElementById('dashRiskAlerts').textContent    = riskAlerts;
+  document.getElementById('dashRecovery').textContent      = recoveryPct + '%';
+  document.getElementById('dashSpending').textContent      = fmtCurrency(monthlySpend);
+  document.getElementById('dashSafetyScore').textContent   = score;
+
+  // Ring animation
+  const ringCircumference = 314;
+  const offset = ringCircumference - (score / 100) * ringCircumference;
+  document.getElementById('scoreRingFill').style.strokeDashoffset = offset;
+
+  // Score title & tags
+  let title, desc, tags;
+  if (score >= 80) {
+    title = '🛡️ Strong Security Posture';
+    desc  = 'Your demo accounts show a solid security setup. Keep maintaining good habits!';
+    tags  = [{ label: 'Good 2FA coverage', cls: 'good' }, { label: 'Recovery ready', cls: 'good' }];
+  } else if (score >= 55) {
+    title = '⚠️ Moderate Risk Detected';
+    desc  = 'A few areas need attention. Check the Risk Assessment section for details.';
+    tags  = [{ label: 'Some 2FA missing', cls: 'warn' }, { label: 'Review recovery', cls: 'warn' }];
+  } else {
+    title = '🚨 High Risk — Action Needed';
+    desc  = 'Several security gaps detected in your demo data. Review risk warnings urgently.';
+    tags  = [{ label: '2FA gaps', cls: 'danger' }, { label: 'Recovery incomplete', cls: 'danger' }, { label: 'High exposure', cls: 'danger' }];
+  }
+
+  document.getElementById('scoreTitle').textContent = title;
+  document.getElementById('scoreDesc').textContent  = desc;
+  document.getElementById('scoreTags').innerHTML    = tags.map(t =>
+    `<span class="score-tag ${t.cls}">${t.label}</span>`
+  ).join('');
+
+  // Alerts
+  const alerts = [];
+  if (noTfa > 0) alerts.push({ type: 'warn',   icon: 'shield-off',    msg: `${noTfa} account(s) do not have Two-Factor Authentication enabled.` });
+  if (noRecovery > 0) alerts.push({ type: 'danger', icon: 'alert-triangle', msg: `${noRecovery} account(s) have no recovery method set up.` });
+  const expiring = state.subs.filter(s => daysUntil(s.renewal) <= 30 && daysUntil(s.renewal) >= 0);
+  if (expiring.length > 0) alerts.push({ type: 'warn', icon: 'calendar-x', msg: `${expiring.length} subscription(s) renew within 30 days.` });
+  if (recoveryPct < 60) alerts.push({ type: 'info', icon: 'life-buoy', msg: `Recovery readiness is ${recoveryPct}%. Complete the Recovery Centre checklist.` });
+  if (alerts.length === 0) alerts.push({ type: 'info', icon: 'check-circle', msg: 'No critical alerts at this time. Keep up the good work!' });
+
+  document.getElementById('dashAlerts').innerHTML = alerts.map(a =>
+    `<div class="alert-item ${a.type}"><i data-lucide="${a.icon}"></i><span>${a.msg}</span></div>`
+  ).join('');
+  lucide.createIcons();
+}
+
+// ─── Digital Accounts ───────────────────────────────────────────────────────
+function renderAccounts(filter = '') {
+  const list = document.getElementById('accountsList');
+  let accounts = state.accounts;
+  if (filter) {
+    const q = filter.toLowerCase();
+    accounts = accounts.filter(a =>
+      a.name.toLowerCase().includes(q) || a.category.toLowerCase().includes(q)
+    );
+  }
+
+  if (accounts.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="user-x"></i>
+        <p>${filter ? 'No accounts match your search.' : 'No accounts added yet. Use the form above to add your first account.'}</p>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  list.innerHTML = accounts.map(a => {
+    const tfaBadge = a.twoFA === 'Enabled' ? 'badge-green' : a.twoFA === 'Disabled' ? 'badge-red' : 'badge-amber';
+    const tfaLabel = a.twoFA === 'Enabled' ? '✅ 2FA On' : a.twoFA === 'Disabled' ? '❌ 2FA Off' : '❓ 2FA Unknown';
+    const recBadge = a.recovery === 'None' ? 'badge-red' : 'badge-blue';
+    const emoji    = CATEGORY_EMOJI[a.category] || '📌';
+    return `
+      <div class="item-card" id="acc-${a.id}">
+        <div class="item-icon" style="background:${categoryBg(a.category)}22; font-size:1.3rem">${emoji}</div>
+        <div class="item-details">
+          <div class="item-name">${escapeHtml(a.name)}</div>
+          <div class="item-meta">
+            <span class="badge badge-purple">${a.category}</span>
+            <span class="badge ${tfaBadge}">${tfaLabel}</span>
+            <span class="badge ${recBadge}">🔑 ${a.recovery}</span>
+            ${a.notes ? `<span class="badge badge-gray">💬 ${escapeHtml(a.notes)}</span>` : ''}
+          </div>
+        </div>
+        <button class="btn-icon" onclick="deleteAccount('${a.id}')" title="Delete account" aria-label="Delete ${escapeHtml(a.name)}">
+          <i data-lucide="trash-2"></i>
+        </button>
+      </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function addAccount(e) {
+  e.preventDefault();
+  const nameEl = document.getElementById('accName');
+  const catEl  = document.getElementById('accCategory');
+  let valid = true;
+
+  [nameEl, catEl].forEach(el => el.classList.remove('error'));
+
+  if (!nameEl.value.trim()) { nameEl.classList.add('error'); valid = false; }
+  if (!catEl.value)         { catEl.classList.add('error');  valid = false; }
+
+  if (!valid) { toast('Please fill in all required fields.', 'error'); return; }
+
+  const account = {
+    id:       uid(),
+    name:     nameEl.value.trim(),
+    category: catEl.value,
+    twoFA:    document.getElementById('acc2FA').value,
+    recovery: document.getElementById('accRecovery').value,
+    notes:    document.getElementById('accNotes').value.trim(),
+  };
+  state.accounts.push(account);
+  persistAll();
+  document.getElementById('accountForm').reset();
+  renderAccounts(document.getElementById('accSearch').value);
+  toast(`"${account.name}" added successfully!`, 'success');
+  renderDashboard();
+}
+
+function deleteAccount(id) {
+  const acc = state.accounts.find(a => a.id === id);
+  if (!acc) return;
+  confirm(
+    'Delete Account',
+    `Remove "${acc.name}" from your account list? This cannot be undone.`,
+    '🗑️',
+    () => {
+      state.accounts = state.accounts.filter(a => a.id !== id);
+      persistAll();
+      renderAccounts(document.getElementById('accSearch').value);
+      toast(`"${acc.name}" removed.`, 'info');
+      renderDashboard();
+    }
+  );
+}
+
+// ─── Subscriptions ───────────────────────────────────────────────────────────
+function renderSubscriptions() {
+  const list = document.getElementById('subList');
+  const subs = state.subs;
+
+  const total  = subs.reduce((s, sub) => s + Number(sub.cost), 0);
+  document.getElementById('subTotal').textContent  = fmtCurrency(total);
+  document.getElementById('subAnnual').textContent = fmtCurrency(total * 12);
+
+  if (subs.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="credit-card"></i>
+        <p>No subscriptions added yet. Track your monthly spending above.</p>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  list.innerHTML = subs.map(s => {
+    const days    = daysUntil(s.renewal);
+    const urgency = days <= 7 ? 'badge-red' : days <= 30 ? 'badge-amber' : 'badge-green';
+    const dLabel  = days === Infinity ? '' : days < 0 ? 'Overdue' : `${days}d left`;
+    const emoji   = CATEGORY_EMOJI[s.category] || '💳';
+    return `
+      <div class="item-card" id="sub-${s.id}">
+        <div class="item-icon" style="background:${categoryBg(s.category)}22; font-size:1.3rem">${emoji}</div>
+        <div class="item-details">
+          <div class="item-name">${escapeHtml(s.name)}</div>
+          <div class="item-meta">
+            <span class="badge badge-purple">${s.category}</span>
+            ${s.renewal ? `<span class="badge ${urgency}">📅 ${fmtDate(s.renewal)}${dLabel ? ' · ' + dLabel : ''}</span>` : ''}
+          </div>
+        </div>
+        <span class="sub-cost">${fmtCurrency(s.cost)}/mo</span>
+        <button class="btn-icon" onclick="deleteSubscription('${s.id}')" title="Delete subscription" aria-label="Delete ${escapeHtml(s.name)}">
+          <i data-lucide="trash-2"></i>
+        </button>
+      </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function addSubscription(e) {
+  e.preventDefault();
+  const nameEl = document.getElementById('subName');
+  const costEl = document.getElementById('subCost');
+  let valid = true;
+
+  [nameEl, costEl].forEach(el => el.classList.remove('error'));
+
+  if (!nameEl.value.trim()) { nameEl.classList.add('error'); valid = false; }
+  if (!costEl.value || isNaN(Number(costEl.value)) || Number(costEl.value) < 0) {
+    costEl.classList.add('error'); valid = false;
+  }
+
+  if (!valid) { toast('Please fill in service name and a valid monthly cost.', 'error'); return; }
+
+  const sub = {
+    id:       uid(),
+    name:     nameEl.value.trim(),
+    cost:     Number(costEl.value),
+    category: document.getElementById('subCategory').value,
+    renewal:  document.getElementById('subRenewal').value,
+  };
+  state.subs.push(sub);
+  persistAll();
+  document.getElementById('subForm').reset();
+  renderSubscriptions();
+  toast(`"${sub.name}" subscription added!`, 'success');
+  renderDashboard();
+}
+
+function deleteSubscription(id) {
+  const sub = state.subs.find(s => s.id === id);
+  if (!sub) return;
+  confirm(
+    'Remove Subscription',
+    `Remove "${sub.name}" from your subscriptions?`,
+    '🗑️',
+    () => {
+      state.subs = state.subs.filter(s => s.id !== id);
+      persistAll();
+      renderSubscriptions();
+      toast(`"${sub.name}" removed.`, 'info');
+      renderDashboard();
+    }
+  );
+}
+
+// ─── Risk Assessment ─────────────────────────────────────────────────────────
+function renderRisk() {
+  const noTfa      = state.accounts.filter(a => a.twoFA !== 'Enabled');
+  const noRecovery = state.accounts.filter(a => a.recovery === 'None');
+  const expiring   = state.subs.filter(s => { const d = daysUntil(s.renewal); return d >= 0 && d <= 30; });
+
+  document.getElementById('rNoTfa').textContent      = noTfa.length;
+  document.getElementById('rNoRecovery').textContent = noRecovery.length;
+  document.getElementById('rExpiring').textContent   = expiring.length;
+
+  /* Risk level (0–100) */
+  let riskScore = 0;
+  riskScore += noTfa.length * 12;
+  riskScore += noRecovery.length * 18;
+  riskScore += expiring.length * 5;
+  riskScore = Math.min(100, riskScore);
+
+  const pct = riskScore;
+  document.getElementById('riskBar').style.left = `calc(${pct}% - 10px)`;
+
+  let levelText, levelColor;
+  if (pct < 25)      { levelText = '🟢 Low Risk';      levelColor = '#22c55e'; }
+  else if (pct < 50) { levelText = '🟡 Moderate Risk'; levelColor = '#f59e0b'; }
+  else if (pct < 75) { levelText = '🟠 High Risk';     levelColor = '#f97316'; }
+  else               { levelText = '🔴 Critical Risk';  levelColor = '#ef4444'; }
+
+  const rlt = document.getElementById('riskLevelText');
+  rlt.textContent  = levelText;
+  rlt.style.color  = levelColor;
+
+  // Warnings
+  const warnings = [];
+  if (noTfa.length > 0) {
+    warnings.push(`${noTfa.length} account(s) missing 2FA: ${noTfa.map(a => `<strong>${escapeHtml(a.name)}</strong>`).join(', ')}`);
+  }
+  if (noRecovery.length > 0) {
+    warnings.push(`${noRecovery.length} account(s) have no recovery method: ${noRecovery.map(a => `<strong>${escapeHtml(a.name)}</strong>`).join(', ')}`);
+  }
+  if (expiring.length > 0) {
+    warnings.push(`${expiring.length} subscription(s) renew in the next 30 days: ${expiring.map(s => `<strong>${escapeHtml(s.name)}</strong> (${fmtDate(s.renewal)})`).join(', ')}`);
+  }
+  const warnEl = document.getElementById('riskWarnings');
+  warnEl.innerHTML = warnings.length > 0
+    ? warnings.map(w => `<div class="warning-item"><i data-lucide="alert-circle"></i><span>${w}</span></div>`).join('')
+    : `<div class="reco-item"><i data-lucide="check-circle"></i><span>No critical warnings found based on your demo data. Great work!</span></div>`;
+
+  // Recommendations
+  const recos = [
+    'Enable Two-Factor Authentication (2FA) on all important accounts, especially banking and email.',
+    'Set up recovery methods (email, phone, backup codes) for every critical online account.',
+    'Use a reputable password manager like Bitwarden or 1Password to generate and store unique passwords.',
+    'Regularly review your active subscriptions to avoid unnecessary spending.',
+    'Keep your recovery phone number and email addresses up to date.',
+    'Enable automatic backups on your devices and cloud accounts.',
+  ];
+  document.getElementById('riskRecommendations').innerHTML = recos.map(r =>
+    `<div class="reco-item"><i data-lucide="shield-check"></i><span>${r}</span></div>`
+  ).join('');
+
+  lucide.createIcons();
+}
+
+// ─── Recovery Centre ─────────────────────────────────────────────────────────
+function renderRecovery() {
+  const keys  = ['backup_codes', 'recovery_email', 'phone_number', 'trusted_contacts', 'data_backup'];
+  const done  = keys.filter(k => state.recovery[k]).length;
+  const pct   = Math.round((done / keys.length) * 100);
+
+  document.getElementById('recoveryPct').textContent     = pct + '%';
+  document.getElementById('recoveryBar').style.width     = pct + '%';
+
+  const notes = [
+    'Just getting started — complete the checklist below!',
+    'Good start — keep building your recovery plan.',
+    'Halfway there — you\'re making great progress!',
+    'Almost there — just a couple more steps!',
+    '🎉 100% complete — your recovery plan is rock solid!',
+  ];
+  document.getElementById('recoveryNote').textContent = notes[Math.min(4, Math.floor(done / keys.length * 4.99))];
+
+  // Sync checkboxes
+  keys.forEach(k => {
+    const checkbox = document.querySelector(`.recovery-check[data-key="${k}"]`);
+    if (checkbox) checkbox.checked = !!state.recovery[k];
+  });
+}
+
+function handleRecoveryCheck(e) {
+  const key = e.target.dataset.key;
+  state.recovery[key] = e.target.checked;
+  save(LS_KEYS.recovery, state.recovery);
+  renderRecovery();
+  if (e.target.checked) toast('Step completed! Recovery readiness updated.', 'success');
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+function exportData() {
+  const data = {
+    exportedAt:    new Date().toISOString(),
+    projectName:   'Digital Risk & Recovery Manager',
+    note:          'This is demo/sample data exported from a college project. No real credentials are stored.',
+    accounts:      state.accounts,
+    subscriptions: state.subs,
+    recoveryStatus: state.recovery,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'drrm-demo-data.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Demo data exported as JSON!', 'success');
+}
+
+function resetData() {
+  confirm(
+    'Reset to Demo Data',
+    'This will clear all your current data and restore the original sample data. This action cannot be undone.',
+    '🔄',
+    () => {
+      state.accounts = JSON.parse(JSON.stringify(DEMO_ACCOUNTS));
+      state.subs     = JSON.parse(JSON.stringify(DEMO_SUBSCRIPTIONS));
+      state.recovery = JSON.parse(JSON.stringify(DEMO_RECOVERY));
+      // Give new IDs so they're fresh objects
+      state.accounts.forEach(a => a.id = uid());
+      state.subs.forEach(s => s.id = uid());
+      persistAll();
+      toast('Demo data restored successfully!', 'success');
+      navigateTo('dashboard');
+    }
+  );
+}
+
+function clearAll() {
+  confirm(
+    'Clear All Data',
+    'This will permanently remove all accounts, subscriptions, and recovery data from localStorage. The page will reload with an empty state.',
+    '🗑️',
+    () => {
+      Object.values(LS_KEYS).forEach(k => localStorage.removeItem(k));
+      toast('All data cleared. Reloading…', 'info');
+      setTimeout(() => location.reload(), 1200);
+    }
+  );
+}
+
+// ─── HTML Escape ─────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ─── Event Listeners ─────────────────────────────────────────────────────────
+function attachEvents() {
+  // Navigation
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', e => {
+      e.preventDefault();
+      navigateTo(item.dataset.section);
+    });
+  });
+
+  // Mobile sidebar toggle
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  // Close sidebar when clicking outside on mobile
+  document.addEventListener('click', e => {
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.getElementById('menuBtn');
+    if (window.innerWidth <= 768 && sidebar.classList.contains('open')
+        && !sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+      sidebar.classList.remove('open');
+    }
+  });
+
+  // Forms
+  document.getElementById('accountForm').addEventListener('submit', addAccount);
+  document.getElementById('subForm').addEventListener('submit', addSubscription);
+
+  // Account search
+  document.getElementById('accSearch').addEventListener('input', e => {
+    renderAccounts(e.target.value);
+  });
+
+  // Recovery checklist
+  document.querySelectorAll('.recovery-check').forEach(cb => {
+    cb.addEventListener('change', handleRecoveryCheck);
+  });
+
+  // Settings buttons
+  document.getElementById('exportBtn').addEventListener('click', exportData);
+  document.getElementById('resetBtn').addEventListener('click', resetData);
+  document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+
+  // Modal
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  });
+
+  // Clear input error state on input
+  document.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', () => el.classList.remove('error'));
+  });
+}
+
+// ─── Initialise App ───────────────────────────────────────────────────────────
+function init() {
+  initState();
+  attachEvents();
+  lucide.createIcons();
+  navigateTo('dashboard');
+}
+
+// Wait for Lucide to load before init
+if (typeof lucide !== 'undefined') {
+  init();
+} else {
+  document.querySelector('script[src*="lucide"]')
+    .addEventListener('load', init);
+  // Fallback
+  window.addEventListener('load', () => {
+    if (typeof lucide !== 'undefined') init();
+  });
+}
